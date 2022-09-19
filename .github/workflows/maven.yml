@@ -111,6 +111,9 @@ jobs:
         echo "checkout $TAG"
         pwd;ls -la
         which sed
+        touch test.txt
+        echo "host: XXXXX.test.com" > test.txt
+        sed -i 's/host: XXXXX.test.com/host: my-load-balancer.elb.amazonaws.com/' ./test.txt
         # sed -i 's/image: XXXXX.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com\/${{ env.ECR_REPOSITORY }}:\(.*\)/image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com\/${{ env.ECR_REPOSITORY }}:'$IMAGE_TAG'/' ./deployment.yaml
         # sed -i 's/host: XXXXX.test.com/host: my-load-balancer-${{ secrets.AWS_ACCOUNT_ID }}.${{ env.AWS_REGION }}.elb.amazonaws.com/' ./ingress.yaml
         git config user.name sbk0716
