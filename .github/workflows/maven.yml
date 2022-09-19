@@ -103,10 +103,10 @@ jobs:
         tag: update-image-feature-${{ github.sha }}
       run: |
         pwd;ls -la
-        echo $GITHUB_WORKSPACE
+        # $GITHUB_WORKSPACE: /home/runner/work/getting-started/getting-started
         ls -la $GITHUB_WORKSPACE
         ls -la $GITHUB_WORKSPACE/k8s-on-aws/
-        cd $GITHUB_WORKSPACE/k8s-on-aws/getting-started-manifest
+        ls -la $GITHUB_WORKSPACE/k8s-on-aws/getting-started-manifest
         git checkout -b $tag
         sed -i 's/image: XXXXX.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com\/${{ env.ECR_REPOSITORY }}:\(.*\)/image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com\/${{ env.ECR_REPOSITORY }}:'$IMAGE_TAG'/' ./deployment.yaml
         sed -i 's/host: XXXXX.test.com/host: my-load-balancer-${{ secrets.AWS_ACCOUNT_ID }}.${{ env.AWS_REGION }}.elb.amazonaws.com/' ./ingress.yaml
@@ -116,7 +116,7 @@ jobs:
         git commit -m "update manifest"
         git push --set-upstream origin $tag
         curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $token" "https://api.github.com/repos/sbk0716/k8s-on-aws/pulls" -d '{"title": "new app deploy request", "head": "sbk0716:'$tag'", "base": "main"}'
-      # working-directory: ./functions
+      working-directory: ./k8s-on-aws/getting-started-manifest
     # ========================================
     # Slack Notification on Success
     # ========================================
