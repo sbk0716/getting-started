@@ -120,8 +120,8 @@ jobs:
         git config user.email ${{ secrets.EMAIL }}
         git add .
         git commit -m "update manifest"
-        git push --set-upstream origin $tag
-        curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $token" "https://api.github.com/repos/sbk0716/k8s-on-aws/pulls" -d '{"title": "new app deploy request", "head": "sbk0716:'$tag'", "base": "main"}'
+        git push --set-upstream origin $TAG
+        curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $token" "https://api.github.com/repos/sbk0716/k8s-on-aws/pulls" -d '{"title": "new app deploy request", "head": "sbk0716:'$TAG'", "base": "main"}'
       working-directory: ./k8s-on-aws/getting-started-manifest
     # ========================================
     # Slack Notification on Success
