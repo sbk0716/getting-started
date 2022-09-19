@@ -18,6 +18,10 @@ jobs:
     # Execute Job if GITHUB_EVENT_PR_HEAD_REF does not contain dependabot
     if: ${{ github.event.pull_request.merged == true && contains(github.event.pull_request.head.ref, 'dependabot') != true}}
     runs-on: ubuntu-latest
+    # ========================================
+    # Assigning permissions to jobs
+    # ========================================
+    # https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs
     permissions:
       actions: write
       checks: write
@@ -33,6 +37,7 @@ jobs:
     # ========================================
     # Dump GITHUB_EVENT
     # ========================================
+    # https://docs.github.com/en/actions/learn-github-actions/contexts
     - name: Dump GITHUB_EVENT
       env:
         GITHUB_EVENT_PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
@@ -140,7 +145,7 @@ jobs:
         echo "TAG: $TAG"
         echo "BASE_BRANCH: $BASE_BRANCH"
         git checkout -b $TAG
-        sed -i "s/image: dummy-image-url/image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com\/${{ env.ECR_REPOSITORY }}:'$TAG'/" ./deployment.yaml
+        sed -i "s/image: dummy-image-url/image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com\/${{ env.ECR_REPOSITORY }}:$TAG/" ./deployment.yaml
         sed -i "s/host: dummy-host-name/host: my-load-balancer-${{ secrets.AWS_ACCOUNT_ID }}.${{ env.AWS_REGION }}.elb.amazonaws.com/" ./ingress.yaml
         git remote -v
         eval "$(ssh-agent -s)"
@@ -154,7 +159,7 @@ jobs:
         git add .
         git commit -m "update manifest"
         git push --set-upstream origin $TAG
-        curl -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $TOKEN" https://api.github.com/repos/sbk0716/k8s-on-aws/pulls -d '{"title":"new app deploy request","head": "sbk0716:'$TAG'", "base": "'$BASE_BRANCH'"}'
+        curl -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $TOKEN" https://api.github.com/repos/sbk0716/k8s-on-aws/pulls -d '{"title":"'$TAG': new app deploy request","head": "sbk0716:'$TAG'", "base": "'$BASE_BRANCH'"}'
       working-directory: ./k8s-on-aws/getting-started-manifest
     # ========================================
     # Slack Notification on Success
@@ -164,7 +169,8 @@ jobs:
       uses: rtCamp/action-slack-notify@v2
       env:
         SLACK_COLOR: ${{ job.status }}
-        SLACK_TITLE: 'Success | Build with Maven & Push image to ECR & Create PR'
+        SLACK_TITLE: '${{ github.repository }} | Success :rocket:'
+        SLACK_MESSAGE: 'See ${{ github.event.repository.url }}/actions/runs/${{ github.run_id }}'
     # ========================================
     # Slack Notification on Failure
     # ========================================
@@ -173,4 +179,5 @@ jobs:
       if: failure()
       env:
         SLACK_COLOR: ${{ job.status }}
-        SLACK_TITLE: 'Failure | Build with Maven & Push image to ECR & Create PR'
+        SLACK_TITLE: '${{ github.repository }} | Failure :boom:'
+        SLACK_MESSAGE: 'See ${{ github.event.repository.url }}/actions/runs/${{ github.run_id }}'
