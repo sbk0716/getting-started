@@ -125,6 +125,7 @@ jobs:
         # sed -i 's/host: XXXXX.test.com/host: my-load-balancer-${{ secrets.AWS_ACCOUNT_ID }}.${{ env.AWS_REGION }}.elb.amazonaws.com/' ./ingress.yaml
         git remote -v
         eval "$(ssh-agent -s)"
+        mkdir ~/.ssh
         ls -la ~/.ssh/
         echo "$DEPLOY_KEY" > ~/.ssh/id_ed25519
         # git remote set-url origin https://sbk0716@github.com/sbk0716/k8s-on-aws.git
