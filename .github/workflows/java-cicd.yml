@@ -135,22 +135,15 @@ jobs:
           BASE_BRANCH=develop
           TAG=$SHORT_COMMIT_HASH
         fi
+        pwd;ls -la
         echo "TAG: $TAG"
         echo "BASE_BRANCH: $BASE_BRANCH"
-        pwd;ls -la
         git checkout -b $TAG
-        echo "##### checkout $TAG #####"
-        pwd;ls -la
-        which sed
-        touch test.txt
-        echo "host: XXXXX.test.com" > test.txt
-        sed -i 's/host: XXXXX.test.com/host: my-load-balancer.elb.amazonaws.com/' ./test.txt
-        sed -i "s/image: dummy-image-url/image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com\/${{ env.ECR_REPOSITORY }}:'$IMAGE_TAG'/" ./deployment.yaml
+        sed -i "s/image: dummy-image-url/image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com\/${{ env.ECR_REPOSITORY }}:'$TAG'/" ./deployment.yaml
         sed -i "s/host: dummy-host-name/host: my-load-balancer-${{ secrets.AWS_ACCOUNT_ID }}.${{ env.AWS_REGION }}.elb.amazonaws.com/" ./ingress.yaml
         git remote -v
         eval "$(ssh-agent -s)"
         mkdir ~/.ssh
-        ls -la ~/.ssh/
         echo "$DEPLOY_KEY" > ~/.ssh/id_ed25519
         chmod 600 ~/.ssh/id_ed25519
         git remote set-url origin git@github.com:sbk0716/k8s-on-aws.git
@@ -160,8 +153,6 @@ jobs:
         git add .
         git commit -m "update manifest"
         git push --set-upstream origin $TAG
-        echo "TAG: $TAG"
-        echo "BASE_BRANCH: $BASE_BRANCH"
         curl -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $TOKEN" https://api.github.com/repos/sbk0716/k8s-on-aws/pulls -d '{"title":"new app deploy request","head": "sbk0716:'$TAG'", "base": "'$BASE_BRANCH'"}'
       working-directory: ./k8s-on-aws/getting-started-manifest
     # ========================================
@@ -172,7 +163,7 @@ jobs:
       uses: rtCamp/action-slack-notify@v2
       env:
         SLACK_COLOR: ${{ job.status }}
-        SLACK_TITLE: 'Java CI with Maven | Slack Notification on Success'
+        SLACK_TITLE: 'Success | Build with Maven & Push image to ECR & Create PR'
     # ========================================
     # Slack Notification on Failure
     # ========================================
@@ -181,4 +172,4 @@ jobs:
       if: failure()
       env:
         SLACK_COLOR: ${{ job.status }}
-        SLACK_TITLE: 'Java CI with Maven | Slack Notification on Failure'
+        SLACK_TITLE: 'Failure | Build with Maven & Push image to ECR & Create PR'
