@@ -89,7 +89,6 @@ jobs:
         else
           IMAGE_TAG=feature-$SHORT_COMMIT_HASH
         fi
-        cd $GITHUB_WORKSPACE
         docker build --cache-from=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg BUILDKIT_INLINE_CACHE=1 -t $ECR_REGISTRY/$ECR_REPOSITORY:latest -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f ./src/main/docker/Dockerfile.jvm .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
@@ -103,12 +102,8 @@ jobs:
         TAG: update-image-feature-${{ github.sha }}
       run: |
         pwd;ls -la
-        # $GITHUB_WORKSPACE: /home/runner/work/getting-started/getting-started
-        ls -la $GITHUB_WORKSPACE
-        ls -la $GITHUB_WORKSPACE/k8s-on-aws/
-        ls -la $GITHUB_WORKSPACE/k8s-on-aws/getting-started-manifest
         git checkout -b $TAG
-        echo "checkout $TAG"
+        echo "##### checkout $TAG #####"
         pwd;ls -la
         which sed
         touch test.txt
@@ -121,7 +116,19 @@ jobs:
         git add .
         git commit -m "update manifest"
         git push --set-upstream origin $TAG
-        curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $token" "https://api.github.com/repos/sbk0716/k8s-on-aws/pulls" -d '{"title": "new app deploy request", "head": "sbk0716:'$TAG'", "base": "main"}'
+        if [ $(echo $GITHUB_EVENT_PR_BASE_REF | grep 'main') ]; then
+          BASE_BRANCH=main
+        elif [ $(echo $GITHUB_EVENT_PR_BASE_REF | grep 'develop') ]; then
+          BASE_BRANCH=develop
+        else
+          BASE_BRANCH=feature
+        fi
+        curl \
+        -X POST \
+        -H "Accept: application/vnd.github+json" \ 
+        -H "Authorization: Bearer $TOKEN" \
+        https://api.github.com/repos/sbk0716/k8s-on-aws/pulls \
+        -d '{"title":"new app deploy request","head": "sbk0716:'$TAG'", "base": "'$BASE_BRANCH'"}'
       working-directory: ./k8s-on-aws/getting-started-manifest
     # ========================================
     # Slack Notification on Success
