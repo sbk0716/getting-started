@@ -1,3 +1,7 @@
+## 0. Prerequisite
+* Install Apache Maven
+* Install Azul JDK(for Apple Ailicon Mac)
+
 # 1. Bootstrapping the project
 ```sh
 % mvn io.quarkus.platform:quarkus-maven-plugin:2.12.2.Final:create \
