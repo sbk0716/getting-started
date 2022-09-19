@@ -122,6 +122,7 @@ jobs:
       env:
         COMMIT_HASH: ${{ github.sha }}
         DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        TOKEN: ${{ secrets.TOKEN }}
       run: |
         SHORT_COMMIT_HASH=$(echo $COMMIT_HASH | cut -c 1-7)
         if [ $(echo $GITHUB_EVENT_PR_BASE_REF | grep 'main') ]; then
