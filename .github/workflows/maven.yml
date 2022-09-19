@@ -14,6 +14,10 @@ env:
 
 jobs:
   buildAndPush:
+    name: 'Build Image & ECR Push Job'
+    # Execute Job if GITHUB_EVENT_PR_HEAD_REF does not contain dependabot
+    if: ${{ github.event.pull_request.merged == true && contains(github.event.pull_request.head.ref, 'dependabot') != true}}
+    runs-on: ubuntu-latest
     permissions:
       actions: write
       checks: write
@@ -25,10 +29,6 @@ jobs:
       repository-projects: write
       security-events: write
       statuses: write
-    name: 'Build Image & ECR Push Job'
-    # Execute Job if GITHUB_EVENT_PR_HEAD_REF does not contain dependabot
-    if: ${{ github.event.pull_request.merged == true && contains(github.event.pull_request.head.ref, 'dependabot') != true}}
-    runs-on: ubuntu-latest
     steps:
     # ========================================
     # Check out repository code
@@ -122,6 +122,8 @@ jobs:
         sed -i 's/host: XXXXX.test.com/host: my-load-balancer.elb.amazonaws.com/' ./test.txt
         # sed -i 's/image: XXXXX.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com\/${{ env.ECR_REPOSITORY }}:\(.*\)/image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com\/${{ env.ECR_REPOSITORY }}:'$IMAGE_TAG'/' ./deployment.yaml
         # sed -i 's/host: XXXXX.test.com/host: my-load-balancer-${{ secrets.AWS_ACCOUNT_ID }}.${{ env.AWS_REGION }}.elb.amazonaws.com/' ./ingress.yaml
+        git remote -v
+        git remote set-url origin https://sbk0716@github.com/sbk0716/k8s-on-aws.git
         git config user.name sbk0716
         git config user.email ${{ secrets.EMAIL }}
         git add .
