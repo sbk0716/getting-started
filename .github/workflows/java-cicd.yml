@@ -1,0 +1,175 @@
+name: 'Build with Maven & Push image to ECR & Create PR'
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+      - develop
+
+env:
+  AWS_REGION: 'ap-northeast-1'
+  ECR_REPOSITORY: 'getting-started'
+  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+
+jobs:
+  buildAndPush:
+    name: 'Build with Maven & Push image to ECR & Create PR'
+    # Execute Job if GITHUB_EVENT_PR_HEAD_REF does not contain dependabot
+    if: ${{ github.event.pull_request.merged == true && contains(github.event.pull_request.head.ref, 'dependabot') != true}}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      checks: write
+      contents: write
+      deployments: write
+      issues: write
+      packages: write
+      pull-requests: write
+      repository-projects: write
+      security-events: write
+      statuses: write
+    steps:
+    # ========================================
+    # Dump GITHUB_EVENT
+    # ========================================
+    - name: Dump GITHUB_EVENT
+      env:
+        GITHUB_EVENT_PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+        GITHUB_EVENT_PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      run: |
+        echo "$GITHUB_EVENT_PR_BASE_REF"
+        echo "$GITHUB_EVENT_PR_HEAD_REF"
+    # ========================================
+    # Check out repository code
+    # ========================================
+    - name: 'Check out repository code'
+      uses: actions/checkout@v3
+    # ========================================
+    # Check out repository code of k8s-on-aws
+    # ========================================
+    - name: 'Check out repository code of k8s-on-aws'
+      uses: actions/checkout@v3
+      with:
+        repository: sbk0716/k8s-on-aws
+        path: k8s-on-aws
+    # ========================================
+    # Set up JDK 17
+    # ========================================
+    - name: 'Set up JDK 17'
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu' # See 'Supported distributions' for available options
+        java-version: '17'
+    # ========================================
+    # Cache local Maven repository
+    # ========================================
+    - name: 'Cache local Maven repository'
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+    # ========================================
+    # Build with Maven
+    # ========================================
+    - name: 'Build with Maven'
+      run: mvn -B package --file pom.xml -Dquarkus.package.type=fast-jar
+    # ========================================
+    # Configure AWS credentials
+    # ========================================
+    - name: 'Configure AWS credentials'
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+    # ========================================
+    # Login to Amazon
+    # ========================================
+    - name: 'Login to Amazon'
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+    # ========================================
+    # Build, tag, and push image to Amazon ECR
+    # ========================================
+    - name: 'Build, tag, and push image to Amazon ECR'
+      id: build-image-service
+      env:
+        DOCKER_BUILDKIT: 1
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        COMMIT_HASH: ${{ github.sha }}
+        GITHUB_EVENT_PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+      run: |
+        SHORT_COMMIT_HASH=$(echo $COMMIT_HASH | cut -c 1-7)
+        if [ $(echo $GITHUB_EVENT_PR_BASE_REF | grep 'main') ]; then
+          IMAGE_TAG=main-$SHORT_COMMIT_HASH
+        elif [ $(echo $GITHUB_EVENT_PR_BASE_REF | grep 'develop') ]; then
+          IMAGE_TAG=develop-$SHORT_COMMIT_HASH
+        else
+          IMAGE_TAG=$SHORT_COMMIT_HASH
+        fi
+        docker build --cache-from=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg BUILDKIT_INLINE_CACHE=1 -t $ECR_REGISTRY/$ECR_REPOSITORY:latest -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f ./src/main/docker/Dockerfile.jvm .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+    # ========================================
+    # Create Pull Request
+    # ========================================
+    - name: 'Create Pull Request'
+      id: create-pull-request
+      env:
+        COMMIT_HASH: ${{ github.sha }}
+        DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        TOKEN: ${{ secrets.TOKEN }}
+      run: |
+        SHORT_COMMIT_HASH=$(echo $COMMIT_HASH | cut -c 1-7)
+        if [ $(echo $GITHUB_EVENT_PR_BASE_REF | grep 'main') ]; then
+          BASE_BRANCH=main
+          TAG=main-$SHORT_COMMIT_HASH
+        elif [ $(echo $GITHUB_EVENT_PR_BASE_REF | grep 'develop') ]; then
+          BASE_BRANCH=develop
+          TAG=develop-$SHORT_COMMIT_HASH
+        else
+          BASE_BRANCH=develop
+          TAG=$SHORT_COMMIT_HASH
+        fi
+        pwd;ls -la
+        echo "TAG: $TAG"
+        echo "BASE_BRANCH: $BASE_BRANCH"
+        git checkout -b $TAG
+        sed -i "s/image: dummy-image-url/image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com\/${{ env.ECR_REPOSITORY }}:'$TAG'/" ./deployment.yaml
+        sed -i "s/host: dummy-host-name/host: my-load-balancer-${{ secrets.AWS_ACCOUNT_ID }}.${{ env.AWS_REGION }}.elb.amazonaws.com/" ./ingress.yaml
+        git remote -v
+        eval "$(ssh-agent -s)"
+        mkdir ~/.ssh
+        echo "$DEPLOY_KEY" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        git remote set-url origin git@github.com:sbk0716/k8s-on-aws.git
+        git remote -v
+        git config user.name sbk0716
+        git config user.email ${{ secrets.EMAIL }}
+        git add .
+        git commit -m "update manifest"
+        git push --set-upstream origin $TAG
+        curl -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $TOKEN" https://api.github.com/repos/sbk0716/k8s-on-aws/pulls -d '{"title":"new app deploy request","head": "sbk0716:'$TAG'", "base": "'$BASE_BRANCH'"}'
+      working-directory: ./k8s-on-aws/getting-started-manifest
+    # ========================================
+    # Slack Notification on Success
+    # ========================================
+    - name: 'Slack Notification on Success'
+      if: success()
+      uses: rtCamp/action-slack-notify@v2
+      env:
+        SLACK_COLOR: ${{ job.status }}
+        SLACK_TITLE: 'Success | Build with Maven & Push image to ECR & Create PR'
+    # ========================================
+    # Slack Notification on Failure
+    # ========================================
+    - name: 'Slack Notification on Failure'
+      uses: rtCamp/action-slack-notify@v2
+      if: failure()
+      env:
+        SLACK_COLOR: ${{ job.status }}
+        SLACK_TITLE: 'Failure | Build with Maven & Push image to ECR & Create PR'
