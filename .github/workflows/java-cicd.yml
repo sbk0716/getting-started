@@ -108,7 +108,7 @@ jobs:
         elif [ $(echo $GITHUB_EVENT_PR_BASE_REF | grep 'develop') ]; then
           IMAGE_TAG=develop-$SHORT_COMMIT_HASH
         else
-          IMAGE_TAG=feature-$SHORT_COMMIT_HASH
+          IMAGE_TAG=$SHORT_COMMIT_HASH
         fi
         docker build --cache-from=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg BUILDKIT_INLINE_CACHE=1 -t $ECR_REGISTRY/$ECR_REPOSITORY:latest -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f ./src/main/docker/Dockerfile.jvm .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
@@ -133,7 +133,7 @@ jobs:
           TAG=develop-$SHORT_COMMIT_HASH
         else
           BASE_BRANCH=develop
-          TAG=develop-$SHORT_COMMIT_HASH
+          TAG=$SHORT_COMMIT_HASH
         fi
         echo "TAG: $TAG"
         echo "BASE_BRANCH: $BASE_BRANCH"
