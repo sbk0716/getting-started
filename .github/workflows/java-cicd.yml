@@ -132,8 +132,8 @@ jobs:
           BASE_BRANCH=develop
           TAG=develop-$SHORT_COMMIT_HASH
         else
-          BASE_BRANCH=feature
-          TAG=feature-$SHORT_COMMIT_HASH
+          BASE_BRANCH=develop
+          TAG=develop-$SHORT_COMMIT_HASH
         fi
         echo "TAG: $TAG"
         echo "BASE_BRANCH: $BASE_BRANCH"
@@ -145,8 +145,8 @@ jobs:
         touch test.txt
         echo "host: XXXXX.test.com" > test.txt
         sed -i 's/host: XXXXX.test.com/host: my-load-balancer.elb.amazonaws.com/' ./test.txt
-        # sed -i "s/image: dummy-image-url/image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com\/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG/" ./deployment.yaml
-        # sed -i "s/host: dummy-host-name/host: my-load-balancer-${{ secrets.AWS_ACCOUNT_ID }}.${{ env.AWS_REGION }}.elb.amazonaws.com/" ./ingress.yaml
+        sed -i "s/image: dummy-image-url/image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com\/${{ env.ECR_REPOSITORY }}:'$IMAGE_TAG'/" ./deployment.yaml
+        sed -i "s/host: dummy-host-name/host: my-load-balancer-${{ secrets.AWS_ACCOUNT_ID }}.${{ env.AWS_REGION }}.elb.amazonaws.com/" ./ingress.yaml
         git remote -v
         eval "$(ssh-agent -s)"
         mkdir ~/.ssh
@@ -163,7 +163,6 @@ jobs:
         echo "TAG: $TAG"
         echo "BASE_BRANCH: $BASE_BRANCH"
         curl -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $TOKEN" https://api.github.com/repos/sbk0716/k8s-on-aws/pulls -d '{"title":"new app deploy request","head": "sbk0716:'$TAG'", "base": "'$BASE_BRANCH'"}'
-        # curl -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $TOKEN" https://api.github.com/repos/sbk0716/k8s-on-aws/pulls -d '{"title":"new app deploy request","head": "sbk0716:test", "base": "main"}'
       working-directory: ./k8s-on-aws/getting-started-manifest
     # ========================================
     # Slack Notification on Success
