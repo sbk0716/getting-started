@@ -103,12 +103,8 @@ jobs:
         TAG: update-image-feature-${{ github.sha }}
       run: |
         pwd;ls -la
-        # $GITHUB_WORKSPACE: /home/runner/work/getting-started/getting-started
-        ls -la $GITHUB_WORKSPACE
-        ls -la $GITHUB_WORKSPACE/k8s-on-aws/
-        ls -la $GITHUB_WORKSPACE/k8s-on-aws/getting-started-manifest
         git checkout -b $TAG
-        echo "checkout $TAG"
+        echo "##### checkout $TAG #####"
         pwd;ls -la
         which sed
         touch test.txt
@@ -121,7 +117,12 @@ jobs:
         git add .
         git commit -m "update manifest"
         git push --set-upstream origin $TAG
-        curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $token" "https://api.github.com/repos/sbk0716/k8s-on-aws/pulls" -d '{"title": "new app deploy request", "head": "sbk0716:'$TAG'", "base": "main"}'
+        curl \
+        -X POST \
+        -H "Accept: application/vnd.github+json" \ 
+        -H "Authorization: Bearer $TOKEN" \
+        https://api.github.com/repos/sbk0716/k8s-on-aws/pulls \
+        -d '{"title":"new app deploy request","head": "sbk0716:'$TAG'", "base": "main"}'
       working-directory: ./k8s-on-aws/getting-started-manifest
     # ========================================
     # Slack Notification on Success
