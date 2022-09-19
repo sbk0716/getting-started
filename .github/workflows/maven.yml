@@ -111,6 +111,7 @@ jobs:
       id: create-pull-request
       env:
         TAG: update-image-feature-${{ github.sha }}
+        DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
       run: |
         pwd;ls -la
         git checkout -b $TAG
@@ -123,7 +124,12 @@ jobs:
         # sed -i 's/image: XXXXX.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com\/${{ env.ECR_REPOSITORY }}:\(.*\)/image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com\/${{ env.ECR_REPOSITORY }}:'$IMAGE_TAG'/' ./deployment.yaml
         # sed -i 's/host: XXXXX.test.com/host: my-load-balancer-${{ secrets.AWS_ACCOUNT_ID }}.${{ env.AWS_REGION }}.elb.amazonaws.com/' ./ingress.yaml
         git remote -v
-        git remote set-url origin https://sbk0716@github.com/sbk0716/k8s-on-aws.git
+        eval "$(ssh-agent -s)"
+        ls -la ~/.ssh/
+        echo "$DEPLOY_KEY" > ~/.ssh/id_ed25519
+        # git remote set-url origin https://sbk0716@github.com/sbk0716/k8s-on-aws.git
+        git remote set-url origin git@github.com:sbk0716/k8s-on-aws.git
+        git remote -v
         git config user.name sbk0716
         git config user.email ${{ secrets.EMAIL }}
         git add .
