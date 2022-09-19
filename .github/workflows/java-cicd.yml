@@ -159,7 +159,7 @@ jobs:
         git add .
         git commit -m "update manifest"
         git push --set-upstream origin $TAG
-        curl -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $TOKEN" https://api.github.com/repos/sbk0716/k8s-on-aws/pulls -d '{"title":"new app deploy request","head": "sbk0716:'$TAG'", "base": "'$BASE_BRANCH'"}'
+        curl -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $TOKEN" https://api.github.com/repos/sbk0716/k8s-on-aws/pulls -d '{"title":"'$TAG': new app deploy request","head": "sbk0716:'$TAG'", "base": "'$BASE_BRANCH'"}'
       working-directory: ./k8s-on-aws/getting-started-manifest
     # ========================================
     # Slack Notification on Success
