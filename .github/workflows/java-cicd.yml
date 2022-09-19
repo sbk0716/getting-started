@@ -145,7 +145,7 @@ jobs:
         echo "TAG: $TAG"
         echo "BASE_BRANCH: $BASE_BRANCH"
         git checkout -b $TAG
-        sed -i "s/image: dummy-image-url/image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com\/${{ env.ECR_REPOSITORY }}:'$TAG'/" ./deployment.yaml
+        sed -i "s/image: dummy-image-url/image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com\/${{ env.ECR_REPOSITORY }}:$TAG/" ./deployment.yaml
         sed -i "s/host: dummy-host-name/host: my-load-balancer-${{ secrets.AWS_ACCOUNT_ID }}.${{ env.AWS_REGION }}.elb.amazonaws.com/" ./ingress.yaml
         git remote -v
         eval "$(ssh-agent -s)"
