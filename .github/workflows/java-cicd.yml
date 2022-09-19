@@ -121,6 +121,7 @@ jobs:
       id: create-pull-request
       env:
         COMMIT_HASH: ${{ github.sha }}
+        GITHUB_EVENT_PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
         DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
         TOKEN: ${{ secrets.TOKEN }}
       run: |
